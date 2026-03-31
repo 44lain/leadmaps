@@ -155,14 +155,11 @@ export const useLeadFinder = () => {
 
       let leads: Lead[] = [];
       let responseRequestId = requestId;
-      let responseFound: number | undefined;
-      let responseMessage: string | undefined;
-
       // Extrai leads e metadados da resposta usando funções puras em src/lib/parseLeads.ts
       const meta = extractResponseMeta(data);
       if (meta.requestId) responseRequestId = meta.requestId;
-      responseFound = meta.found;
-      responseMessage = meta.message;
+      const responseFound = meta.found;
+      const responseMessage = meta.message;
 
       leads = extractLeads(data);
 
