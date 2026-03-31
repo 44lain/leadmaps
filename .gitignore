@@ -1,0 +1,56 @@
+# ─── Dependências ────────────────────────────────────────────────────────────
+node_modules
+
+# ─── Build ───────────────────────────────────────────────────────────────────
+dist
+dist-ssr
+*.local
+
+# ─── Lockfiles alternativos (projeto usa npm / package-lock.json) ────────────
+bun.lock
+bun.lockb
+
+# ─── Variáveis de ambiente — NUNCA commitar ──────────────────────────────────
+.env
+.env.local
+.env.*.local
+# .env.example É commitado intencionalmente (sem valores reais)
+
+# ─── Contexto operacional — notas internas do projeto ────────────────────────
+# Esta pasta contém contexto de AI e dados operacionais (IDs, URLs reais).
+# Não é documentação pública — ver docs/ para documentação.
+memory/
+
+# ─── Supabase local ──────────────────────────────────────────────────────────
+supabase/.branches
+supabase/.temp
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─── Cobertura de testes ─────────────────────────────────────────────────────
+coverage
+.nyc_output
+
+# ─── Obsidian — pasta de configuração local (não relevante para contribuidores) ──
+.obsidian/
+
+# ─── Editor ──────────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─── Sistema operacional ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
