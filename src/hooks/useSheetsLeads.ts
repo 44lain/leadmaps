@@ -12,7 +12,7 @@ interface EstadoLeads {
 export const useSheetsLeads = () => {
   const [state, setState] = useState<EstadoLeads>({
     leads: [],
-    loading: true,
+    loading: false, // inicia false — o carregamento é disparado pelo useEffect no componente
     error: null,
     total: 0,
   });

@@ -13,7 +13,7 @@ O LeadMaps é uma SPA (Single Page Application) que orquestra dois fluxos indepe
 │                         BROWSER (React)                     │
 │                                                             │
 │   ┌───────────────┐          ┌──────────────────────────┐   │
-│   │ LeadFinderForm│          │      LeadsTable           │   │
+│   │ LeadFinderForm│          │     SheetsLeadsTab        │   │
 │   └──────┬────────┘          └────────────┬─────────────┘   │
 │          │ submit                          │ render          │
 │   ┌──────▼────────┐          ┌────────────▼─────────────┐   │
@@ -23,22 +23,24 @@ O LeadMaps é uma SPA (Single Page Application) que orquestra dois fluxos indepe
            │                                │
            │ POST /webhook/lead-finder-osm  │ invoke('get-sheets-leads')
            │                                │
-    ┌──────▼──────┐                 ┌───────▼────────┐
-    │  n8n Cloud  │                 │ Supabase Edge  │
-    │  (Workflow) │                 │   Function     │
-    └──────┬──────┘                 └───────┬────────┘
+    ┌──────▼──────────┐             ┌───────▼────────┐
+    │  n8n self-hosted│             │ Supabase Edge  │
+    │  (Docker local) │             │   Function     │
+    └──────┬──────────┘             └───────┬────────┘
            │                                │
-           │ busca + enriquece              │ GET
+           │ Nominatim geocoding            │ GET (API Key segura)
+           │ Overpass API (OSM)             │
+           │ scraping de sites              │
            │                                │
-    ┌──────▼──────┐                 ┌───────▼────────┐
-    │Google Places│                 │ Google Sheets  │
-    │     API     │                 │    API v4      │
-    └──────┬──────┘                 └───────▼────────┘
+    ┌──────▼──────────┐             ┌───────▼────────┐
+    │ OpenStreetMap   │             │ Google Sheets  │
+    │ (gratuito)      │             │    API v4      │
+    └──────┬──────────┘             └───────▼────────┘
            │ grava resultados              leads
            │                                │
     ┌──────▼──────────────────────────────▼─┤
     │           Google Sheets               │
-    │    (planilha compartilhada)           │
+    │    (planilha do usuário)              │
     └───────────────────────────────────────┘
 ```
 
@@ -49,19 +51,19 @@ O LeadMaps é uma SPA (Single Page Application) que orquestra dois fluxos indepe
 **Responsável no frontend:** `useLeadFinder.ts`
 
 1. Usuário preenche tipo de estabelecimento + localização e clica em "Buscar leads"
-2. O frontend gera um `request_id` (UUID v4) e faz POST direto ao webhook do n8n
+2. O frontend gera um `request_id` (UUID v4 via `crypto.randomUUID()`) e faz POST ao webhook local do n8n
 3. O workflow n8n executa:
-   - Busca no Google Places Text Search API
-   - Para cada resultado, chama Google Places Details API (telefone, site)
-   - Faz scraping do site (se existir) para extrair redes sociais
-   - Grava todos os dados na planilha Google Sheets
+   - Geocoding da localização via **Nominatim** (OSM)
+   - Busca de estabelecimentos via **Overpass API** (OpenStreetMap) — totalmente gratuito
+   - Para cada resultado com website, faz scraping para extrair redes sociais (Instagram, WhatsApp, etc.)
+   - Grava todos os dados na planilha Google Sheets via Google Sheets API (OAuth2 configurado no n8n)
 4. O frontend trata dois modos de resposta do n8n:
    - **Síncrono**: leads chegam no body do POST → exibe imediatamente
-   - **Assíncrono**: body vazio/ack → tenta buscar pelo `request_id` no endpoint de resultados
+   - **Assíncrono / onReceived**: body vazio → a tabela se atualiza via auto-refresh nos próximos 30s
 
-**URLs do n8n** (configuradas via variáveis de ambiente — ver `.env.example`):
-- Disparo: `VITE_N8N_WEBHOOK_URL` → ex.: `http://localhost:5678/webhook/lead-finder`
-- Resultados: `VITE_N8N_RESULTS_URL` → ex.: `http://localhost:5678/webhook/lead-finder-results`
+**URL do n8n** (configurada via variável de ambiente):
+- Disparo: `VITE_N8N_WEBHOOK_URL` → ex.: `http://localhost:5678/webhook/lead-finder-osm`
+- Arquivo do workflow: `n8n/lead-finder-osm.workflow.json` (local, gitignored)
 
 ---
 
@@ -72,7 +74,7 @@ O LeadMaps é uma SPA (Single Page Application) que orquestra dois fluxos indepe
 1. Ao carregar a página, e a cada 30 segundos (quando auto-refresh ativo), o hook é acionado
 2. Chama a Edge Function `get-sheets-leads` via SDK do Supabase
 3. A Edge Function roda em Deno no servidor do Supabase e:
-   - Lê a planilha usando Google Sheets API v4 com chave de API segura
+   - Lê a planilha usando Google Sheets API v4 com chave de API segura (`GOOGLE_SHEETS_API_KEY` secret)
    - Converte as linhas em array de objetos usando o cabeçalho da primeira linha
    - Retorna `{ leads, total, message }`
 4. Os leads são exibidos na `LeadsTable` com busca e paginação
@@ -92,17 +94,18 @@ src/
 │   │   ├── LeadFinderForm.tsx  — formulário de busca
 │   │   ├── LeadsTable.tsx      — tabela com busca e paginação
 │   │   ├── LocationAutocomplete.tsx — input com autocomplete via Nominatim
-│   │   ├── ResultsSummary.tsx  — resumo pós-busca
+│   │   ├── ResultsSummary.tsx  — resumo pós-busca (leads encontrados nesta busca)
+│   │   ├── SheetsLeadsTab.tsx  — painel completo da planilha (auto-refresh + tabela)
 │   │   ├── StatusCard.tsx      — indicador de estado da busca
 │   │   └── DebugPanel.tsx      — painel técnico de debug
 │   └── ui/                 # Componentes shadcn/ui (não editar manualmente)
 ├── hooks/
 │   ├── useLeadFinder.ts    — fluxo de busca via n8n
-│   ├── useSheetsLeads.ts   — leitura de leads da planilha
+│   ├── useSheetsLeads.ts   — leitura de leads da planilha via Edge Function
 │   └── useFormPersistence.ts — persistência do formulário no localStorage
 ├── integrations/
 │   └── supabase/
-│       ├── client.ts       — instância do cliente Supabase
+│       ├── client.ts       — instância do cliente Supabase (valida env vars)
 │       └── types.ts        — tipos gerados do schema do banco
 ├── pages/
 │   ├── Index.tsx           — página principal (única rota real)
@@ -117,8 +120,9 @@ supabase/
     └── get-sheets-leads/
         └── index.ts        — Edge Function (Deno) que lê a planilha
 
+n8n/                        — workflows do n8n (gitignored — contém dados locais)
 docs/                       — documentação do projeto
-memory/                     — contexto e decisões do projeto
+memory/                     — contexto e decisões do projeto (gitignored)
 ```
 
 ---
@@ -127,12 +131,12 @@ memory/                     — contexto e decisões do projeto
 
 | Serviço | Função | Onde é usado |
 |---|---|---|
-| n8n Cloud | Automação de busca e enriquecimento de leads | `useLeadFinder.ts` |
-| Google Places API | Busca de estabelecimentos por texto/localização | Dentro do n8n |
-| Google Sheets | Armazenamento compartilhado dos leads | n8n grava; Edge Function lê |
+| n8n self-hosted (Docker) | Automação de busca e enriquecimento de leads | `useLeadFinder.ts` |
+| Overpass API (OSM) | Busca de estabelecimentos por tipo/localização — gratuito | Dentro do n8n |
+| Nominatim (OSM) | Geocoding da localização (coordenadas) | n8n + `LocationAutocomplete.tsx` |
+| Google Sheets | Armazenamento dos leads gerados | n8n grava; Edge Function lê |
 | Google Sheets API v4 | Leitura da planilha pelo backend | `get-sheets-leads/index.ts` |
-| Supabase | Hospedagem da Edge Function; auth futura | `useSheetsLeads.ts` |
-| Nominatim (OSM) | Autocomplete de localização no formulário | `LocationAutocomplete.tsx` |
+| Supabase | Hospedagem da Edge Function; auth futura | `useSheetsLeads.ts`, `client.ts` |
 
 ---
 
@@ -142,9 +146,13 @@ memory/                     — contexto e decisões do projeto
 ```
 VITE_SUPABASE_URL=
 VITE_SUPABASE_PUBLISHABLE_KEY=
+VITE_N8N_WEBHOOK_URL=http://localhost:5678/webhook/lead-finder-osm
+VITE_SHEETS_URL=https://docs.google.com/spreadsheets/d/<ID>/edit
 ```
 
 ### Supabase Edge Function (secrets)
 ```
 GOOGLE_SHEETS_API_KEY=
+SPREADSHEET_ID=
 ```
+

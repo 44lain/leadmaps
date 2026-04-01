@@ -1,46 +1,19 @@
 import { useLeadFinder } from '@/hooks/useLeadFinder';
 import { useFormPersistence } from '@/hooks/useFormPersistence';
-import { useSheetsLeads } from '@/hooks/useSheetsLeads';
 import { LeadFinderForm } from '@/components/lead-finder/LeadFinderForm';
 import { StatusCard } from '@/components/lead-finder/StatusCard';
 import { ResultsSummary } from '@/components/lead-finder/ResultsSummary';
-import { LeadsTable } from '@/components/lead-finder/LeadsTable';
+import { SheetsLeadsTab } from '@/components/lead-finder/SheetsLeadsTab';
 import { DebugPanel } from '@/components/lead-finder/DebugPanel';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { MapPin, RefreshCw, AlertCircle, ExternalLink, Pause, Play } from 'lucide-react';
-import { useEffect, useState } from 'react';
-
-const SHEETS_URL = import.meta.env.VITE_SHEETS_URL as string;
-const AUTO_REFRESH_INTERVAL = 30000;
+import { MapPin } from 'lucide-react';
 
 const Index = () => {
   const { state, searchLeads, reset: resetSearch } = useLeadFinder();
   const { values, updateValue, resetValues } = useFormPersistence();
-  const { leads: sheetsLeads, loading: sheetsLoading, error: sheetsError, total: sheetsTotal, fetchLeads } = useSheetsLeads();
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-
-  useEffect(() => {
-    fetchLeads().then(() => setLastUpdate(new Date()));
-  }, [fetchLeads]);
-
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      fetchLeads().then(() => setLastUpdate(new Date()));
-    }, AUTO_REFRESH_INTERVAL);
-    return () => clearInterval(interval);
-  }, [autoRefresh, fetchLeads]);
 
   const handleReset = () => {
     resetValues();
     resetSearch();
-  };
-
-  const handleManualRefresh = () => {
-    fetchLeads().then(() => setLastUpdate(new Date()));
   };
 
   const showCorsWarning = state.status === 'error' && state.error?.includes('CORS');
@@ -102,74 +75,9 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Largura total — leads da planilha */}
-        <div className="mt-6 sm:mt-8 space-y-6">
-          <Card>
-            <CardHeader className="pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-lg">Leads da Planilha</CardTitle>
-                  {lastUpdate && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Última atualização: {lastUpdate.toLocaleTimeString()}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAutoRefresh(!autoRefresh)}
-                    title={autoRefresh ? 'Pausar atualização automática' : 'Retomar atualização automática'}
-                  >
-                    {autoRefresh ? <Pause className="h-4 w-4 sm:mr-2" /> : <Play className="h-4 w-4 sm:mr-2" />}
-                    <span className="hidden sm:inline">{autoRefresh ? 'Pausar' : 'Retomar'}</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(SHEETS_URL, '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Abrir Planilha</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleManualRefresh}
-                    disabled={sheetsLoading}
-                  >
-                    <RefreshCw className={`h-4 w-4 sm:mr-2 ${sheetsLoading ? 'animate-spin' : ''}`} />
-                    <span className="hidden sm:inline">Atualizar</span>
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {sheetsError && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{sheetsError}</AlertDescription>
-                </Alert>
-              )}
-
-              {sheetsLoading && sheetsLeads.length === 0 && (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                  <span className="ml-2 text-muted-foreground">Carregando leads...</span>
-                </div>
-              )}
-
-              {!sheetsLoading && !sheetsError && sheetsTotal > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {sheetsTotal} leads encontrados na planilha
-                  {autoRefresh && ' • Atualização automática ativa (30s)'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {sheetsLeads.length > 0 && <LeadsTable leads={sheetsLeads} />}
+        {/* Largura total — leads da planilha com auto-refresh */}
+        <div className="mt-6 sm:mt-8">
+          <SheetsLeadsTab />
         </div>
       </main>
     </div>

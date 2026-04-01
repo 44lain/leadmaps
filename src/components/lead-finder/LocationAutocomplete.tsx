@@ -37,7 +37,13 @@ export const LocationAutocomplete = ({ value, onChange }: LocationAutocompletePr
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=br&limit=6&addressdetails=1`,
-        { headers: { 'Accept-Language': 'pt-BR' } }
+        {
+          headers: {
+            'Accept-Language': 'pt-BR',
+            // Nominatim ToS exige User-Agent identificando a aplicação
+            'User-Agent': 'leadmaps/1.0 (github.com/44lain/leadmaps)',
+          },
+        }
       );
       const data: LocationSuggestion[] = await res.json();
       setSuggestions(data);

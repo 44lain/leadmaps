@@ -9,16 +9,15 @@ import { extractLeads, extractResponseMeta } from '@/lib/parseLeads';
 
 const WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL as string;
 const RESULTS_URL = import.meta.env.VITE_N8N_RESULTS_URL as string;
-const TIMEOUT_MS = 600000; // 10 minutos
+const TIMEOUT_MS = 600_000; // 10 minutos
 
-// Gera um UUID v4 simples para identificar cada requisição
-const generateUUID = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
+// Valida em tempo de execução que a URL do webhook está configurada
+if (!WEBHOOK_URL) {
+  console.warn('[useLeadFinder] VITE_N8N_WEBHOOK_URL não configurado — buscas vão falhar');
+}
+
+// Gera UUID v4 usando a API nativa do browser (mais segura que Math.random)
+const generateUUID = (): string => crypto.randomUUID();
 
 export const useLeadFinder = () => {
   const [state, setState] = useState<SearchState>({

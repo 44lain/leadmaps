@@ -2,8 +2,6 @@ import { CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Lead } from '@/types/leads';
-import { useSheetsLeads } from '@/hooks/useSheetsLeads';
-import { useEffect } from 'react';
 
 interface ResultsSummaryProps {
   message: string;
@@ -12,13 +10,6 @@ interface ResultsSummaryProps {
 }
 
 export const ResultsSummary = ({ message, found, leads }: ResultsSummaryProps) => {
-  const { total: sheetsTotal, fetchLeads } = useSheetsLeads();
-
-  useEffect(() => {
-    // Atualiza a contagem da planilha ao exibir os resultados
-    fetchLeads();
-  }, [fetchLeads]);
-
   // Extrai nomes dos leads para prévia
   const nomesLeads = leads
     .map((lead) => lead.name || lead.nome || '')
@@ -33,7 +24,7 @@ export const ResultsSummary = ({ message, found, leads }: ResultsSummaryProps) =
             Resultados
           </CardTitle>
           <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">
-            {sheetsTotal} leads
+            {found} encontrados
           </Badge>
         </div>
       </CardHeader>
