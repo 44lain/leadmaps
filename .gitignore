@@ -38,6 +38,10 @@ lerna-debug.log*
 coverage
 .nyc_output
 
+# ─── n8n — workflows contêm IDs de planilhas e são configuração local ─────────
+# Remova esta linha se quiser versionar os workflows no repositório público
+n8n/
+
 # ─── Obsidian — pasta de configuração local (não relevante para contribuidores) ──
 .obsidian/
 

@@ -10,7 +10,7 @@ import {
 // Chaves possíveis para cada campo do lead — o webhook pode retornar nomes variados
 const NAME_KEYS = ['name', 'Name', 'lead_name', 'nome', 'Nome'];
 const ADDRESS_KEYS = ['address', 'Address', 'lead_address', 'formatted_address', 'endereco', 'Endereço'];
-const MAPS_KEYS = ['maps_link', 'maps_url', 'google_maps', 'googleMaps', 'Maps', 'maps', 'localização', 'localizacao', 'Localização'];
+const MAPS_KEYS = ['maps_link', 'maps_url', 'loc', 'google_maps', 'googleMaps', 'Maps', 'maps', 'localização', 'localizacao', 'Localização'];
 const RATING_KEYS = ['rating', 'Rating', 'Avaliação', 'avaliacao'];
 const TYPE_KEYS = ['type', 'Type', 'types', 'Types', 'category', 'Category', 'tipo', 'Tipo', 'lead_category'];
 const STATUS_KEYS = ['status', 'Status'];
